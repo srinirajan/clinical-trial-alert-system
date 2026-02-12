@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrialWatch - HCP Alert System</title>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0066CC;
+            --primary-dark: #004C99;
+            --critical: #D32F2F;
+            --warning: #F57C00;
+            --success: #388E3C;
+            --info: #0288D1;
+            --bg-main: #F5F7FA;
+            --bg-card: #FFFFFF;
+            --text-primary: #1A1A1A;
+            --text-secondary: #616161;
+            --border: #E0E0E0;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+            --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background: linear-gradient(180deg, #003D7A 0%, #00254D 100%);
+            color: white;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .sidebar-header {
+            padding: 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 4px;
+        }
+
+        .logo-subtitle {
+            font-size: 12px;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+        }
+
+        .nav-menu {
+            flex: 1;
+            padding: 20px 0;
+        }
+
+        .nav-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: rgba(255,255,255,0.08);
+        }
+
+        .nav-item.active {
+            background: rgba(255,255,255,0.12);
+            border-left-color: #4FC3F7;
+        }
+
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .trial-selector {
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .trial-selector label {
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.7;
+            margin-bottom: 8px;
+        }
+
+        .trial-select {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .trial-select option {
+            background: #003D7A;
+            color: white;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 24px 32px;
+            overflow-y: auto;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .page-subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            border-left: 4px solid;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-card.critical { border-left-color: var(--critical); }
+        .stat-card.warning { border-left-color: var(--warning); }
+        .stat-card.success { border-left-color: var(--success); }
+        .stat-card.info { border-left-color: var(--info); }
+
+        .stat-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 4px;
+        }
+
+        .stat-change {
+            font-size: 13px;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .stat-change.positive { color: var(--success); }
+        .stat-change.negative { color: var(--critical); }
+
+        /* Alert Cards */
+        .alerts-section {
+            margin-bottom: 32px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-tab {
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: white;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .filter-tab:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .filter-tab.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .alerts-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .alert-card {
+            background: var(--bg-card);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: var(--shadow-sm);
+            border-left: 4px solid;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 20px;
+            align-items: start;
+            transition: all 0.2s;
+            animation: slideIn 0.4s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .alert-card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateX(4px);
+        }
+
+        .alert-card.critical {
+            border-left-color: var(--critical);
+            background: linear-gradient(90deg, rgba(211, 47, 47, 0.03) 0%, var(--bg-card) 100%);
+        }
+
+        .alert-card.warning {
+            border-left-color: var(--warning);
+            background: linear-gradient(90deg, rgba(245, 124, 0, 0.03) 0%, var(--bg-card) 100%);
+        }
+
+        .alert-card.info {
+            border-left-color: var(--info);
+        }
+
+        .alert-content {
+            flex: 1;
+        }
+
+        .alert-header {
+            display: flex;
+            align-items: start;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .alert-badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .alert-badge.critical {
+            background: rgba(211, 47, 47, 0.1);
+            color: var(--critical);
+        }
+
+        .alert-badge.warning {
+            background: rgba(245, 124, 0, 0.1);
+            color: var(--warning);
+        }
+
+        .alert-badge.info {
+            background: rgba(2, 136, 209, 0.1);
+            color: var(--info);
+        }
+
+        .alert-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .alert-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .alert-meta {
+            display: flex;
+            gap: 20px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .alert-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .alert-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .alert-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .alert-btn.primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .alert-btn.primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .alert-btn.secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+
+        .alert-btn.secondary:hover {
+            background: var(--bg-main);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        /* Timeline */
+        .timeline-section {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, var(--primary) 0%, var(--border) 100%);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 24px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .timeline-item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: -32px;
+            top: 4px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 3px solid var(--primary);
+            box-shadow: 0 0 0 4px var(--bg-card);
+        }
+
+        .timeline-time {
+            font-size: 12px;
+            color: var(--text-secondary);
+            font-family: 'IBM Plex Mono', monospace;
+            margin-bottom: 4px;
+        }
+
+        .timeline-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .timeline-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Responsive */
+        @media (max-width: 968px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar {
+                display: none;
+            }
+        }
+
+        /* New Alert Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            animation: fadeIn 0.2s;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.3s;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+
+        .add-alert-btn {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: var(--shadow-lg);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .add-alert-btn:hover {
+            background: var(--primary-dark);
+            transform: scale(1.1);
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7);
+            }
+            50% {
+                box-shadow: 0 0 0 10px rgba(211, 47, 47, 0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">TrialWatch</div>
+                <div class="logo-subtitle">Clinical Alert System</div>
+            </div>
+            
+            <nav class="nav-menu">
+                <div class="nav-item active">
+                    <div class="nav-icon">🔔</div>
+                    Active Alerts
+                </div>
+                <div class="nav-item">
+                    <div class="nav-icon">📊</div>
+                    Dashboard
+                </div>
+                <div class="nav-item">
+                    <div class="nav-icon">👥</div>
+                    Patients
+                </div>
+                <div class="nav-item">
+                    <div class="nav-icon">📋</div>
+                    Protocols
+                </div>
+                <div class="nav-item">
+                    <div class="nav-icon">📈</div>
+                    Analytics
+                </div>
+                <div class="nav-item">
+                    <div class="nav-icon">⚙️</div>
+                    Settings
+                </div>
+            </nav>
+
+            <div class="trial-selector">
+                <label>Active Trial</label>
+                <select class="trial-select" id="trialSelect">
+                    <option>PROTO-2024-001 (Oncology)</option>
+                    <option>CARDIO-2024-005 (Phase III)</option>
+                    <option>NEURO-2023-012 (Phase II)</option>
+                    <option>METAB-2024-003 (Phase I)</option>
+                </select>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header">
+                <h1 class="page-title">Active Alerts</h1>
+                <p class="page-subtitle">Protocol PROTO-2024-001 • 47 enrolled patients • Last sync: 2 min ago</p>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card critical">
+                    <div class="stat-label">Critical Alerts</div>
+                    <div class="stat-value">3</div>
+                    <div class="stat-change negative">↑ 2 since yesterday</div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-label">Pending Action</div>
+                    <div class="stat-value">8</div>
+                    <div class="stat-change negative">↑ 1 since yesterday</div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-label">On Schedule</div>
+                    <div class="stat-value">36</div>
+                    <div class="stat-change positive">↑ 3 since yesterday</div>
+                </div>
+                <div class="stat-card info">
+                    <div class="stat-label">Avg Response Time</div>
+                    <div class="stat-value">2.4h</div>
+                    <div class="stat-change positive">↓ 0.6h vs last week</div>
+                </div>
+            </div>
+
+            <!-- Alerts Section -->
+            <div class="alerts-section">
+                <div class="section-header">
+                    <h2 class="section-title">Recent Alerts</h2>
+                    <div class="filter-tabs">
+                        <button class="filter-tab active" onclick="filterAlerts('all')">All</button>
+                        <button class="filter-tab" onclick="filterAlerts('critical')">Critical</button>
+                        <button class="filter-tab" onclick="filterAlerts('warning')">Warning</button>
+                        <button class="filter-tab" onclick="filterAlerts('info')">Info</button>
+                    </div>
+                </div>
+
+                <div class="alerts-container" id="alertsContainer">
+                    <!-- Alerts will be rendered here -->
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="timeline-section">
+                <h2 class="section-title" style="margin-bottom: 24px;">Trial Activity Timeline</h2>
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-time">2 hours ago</div>
+                        <div class="timeline-title">Patient PT-041 enrolled successfully</div>
+                        <div class="timeline-description">Completed baseline assessments and randomization</div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-time">5 hours ago</div>
+                        <div class="timeline-title">Adverse event reported - PT-028</div>
+                        <div class="timeline-description">Grade 2 nausea, investigator notified, follow-up scheduled</div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-time">1 day ago</div>
+                        <div class="timeline-title">Protocol amendment approved</div>
+                        <div class="timeline-description">Amendment 03 - Updated inclusion criteria, effective immediately</div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-time">2 days ago</div>
+                        <div class="timeline-title">Monitoring visit completed</div>
+                        <div class="timeline-description">100% source data verification, 2 minor findings documented</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Alert Modal -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h2 class="modal-header">Create New Alert</h2>
+            <form id="alertForm">
+                <div class="form-group">
+                    <label class="form-label">Alert Type</label>
+                    <select class="form-select" id="alertType" required>
+                        <option value="">Select type...</option>
+                        <option value="critical">Critical</option>
+                        <option value="warning">Warning</option>
+                        <option value="info">Info</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Patient ID</label>
+                    <input type="text" class="form-input" id="patientId" placeholder="e.g., PT-045" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Alert Title</label>
+                    <input type="text" class="form-input" id="alertTitle" placeholder="Brief description" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Details</label>
+                    <textarea class="form-textarea" id="alertDetails" placeholder="Additional information..." required></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="alert-btn secondary" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="alert-btn primary">Create Alert</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Floating Action Button -->
+    <button class="add-alert-btn" onclick="openModal()" title="Create New Alert">+</button>
+
+    <script>
+        // Sample alert data
+        const alertsData = [
+            {
+                id: 1,
+                type: 'critical',
+                title: 'Serious Adverse Event - PT-023',
+                description: 'Grade 3 hypotension reported during Visit 4. Patient hospitalized for observation. Immediate investigator review required per protocol Section 7.3.',
+                patient: 'PT-023',
+                time: '15 min ago',
+                visit: 'Visit 4',
+                status: 'unread'
+            },
+            {
+                id: 2,
+                type: 'critical',
+                title: 'Protocol Deviation - PT-041',
+                description: 'Study medication administered 48 hours late due to pharmacy delay. Requires deviation form completion and corrective action plan.',
+                patient: 'PT-041',
+                time: '1 hour ago',
+                visit: 'Visit 3',
+                status: 'unread'
+            },
+            {
+                id: 3,
+                type: 'warning',
+                title: 'Missed Visit Window - PT-018',
+                description: 'Patient is approaching end of visit window (2 days remaining) for Visit 5. Recommend scheduling immediately to maintain protocol compliance.',
+                patient: 'PT-018',
+                time: '2 hours ago',
+                visit: 'Visit 5',
+                status: 'unread'
+            },
+            {
+                id: 4,
+                type: 'critical',
+                title: 'Lab Values Out of Range - PT-035',
+                description: 'AST/ALT elevated >3x ULN. Per protocol stopping rules, patient must discontinue study drug immediately. Investigator consultation required.',
+                patient: 'PT-035',
+                time: '3 hours ago',
+                visit: 'Visit 6',
+                status: 'unread'
+            },
+            {
+                id: 5,
+                type: 'warning',
+                title: 'Consent Re-authorization Required - PT-012',
+                description: 'Protocol amendment 03 effective today. Patient must sign updated consent form before next visit (scheduled in 5 days).',
+                patient: 'PT-012',
+                time: '4 hours ago',
+                visit: 'Next Visit',
+                status: 'unread'
+            },
+            {
+                id: 6,
+                type: 'warning',
+                title: 'Drug Accountability Discrepancy - Site',
+                description: 'Temperature excursion detected in drug storage refrigerator. 8 medication kits potentially affected. Requires immediate review and sponsor notification.',
+                patient: 'Multiple',
+                time: '5 hours ago',
+                visit: 'N/A',
+                status: 'unread'
+            },
+            {
+                id: 7,
+                type: 'info',
+                title: 'Upcoming Monitoring Visit',
+                description: 'CRA site visit scheduled for next week (Feb 19-20). Please ensure all source documents are current and query resolutions are up to date.',
+                patient: 'N/A',
+                time: '6 hours ago',
+                visit: 'N/A',
+                status: 'read'
+            },
+            {
+                id: 8,
+                type: 'warning',
+                title: 'Incomplete CRF - PT-029',
+                description: 'Visit 3 case report form has 4 outstanding queries. Data lock approaching in 2 weeks. Please review and resolve ASAP.',
+                patient: 'PT-029',
+                time: '7 hours ago',
+                visit: 'Visit 3',
+                status: 'read'
+            },
+            {
+                id: 9,
+                type: 'info',
+                title: 'Patient Enrollment Milestone',
+                description: 'Site has successfully enrolled 75% of target enrollment (47/63 patients). Excellent progress - keep up the momentum!',
+                patient: 'N/A',
+                time: '1 day ago',
+                visit: 'N/A',
+                status: 'read'
+            },
+            {
+                id: 10,
+                type: 'warning',
+                title: 'Expiring Study Drug - Pharmacy',
+                description: '3 medication kits expiring within 30 days. Please use in FIFO order or return to sponsor if unused.',
+                patient: 'N/A',
+                time: '1 day ago',
+                visit: 'N/A',
+                status: 'read'
+            }
+        ];
+
+        let currentFilter = 'all';
+
+        function renderAlerts(filter = 'all') {
+            const container = document.getElementById('alertsContainer');
+            const filteredAlerts = filter === 'all' 
+                ? alertsData 
+                : alertsData.filter(alert => alert.type === filter);
+
+            container.innerHTML = filteredAlerts.map(alert => `
+                <div class="alert-card ${alert.type}">
+                    <div class="alert-content">
+                        <div class="alert-header">
+                            <span class="alert-badge ${alert.type}">${alert.type}</span>
+                        </div>
+                        <div class="alert-title">${alert.title}</div>
+                        <div class="alert-description">${alert.description}</div>
+                        <div class="alert-meta">
+                            <div class="alert-meta-item">
+                                <span>👤</span>
+                                <span>${alert.patient}</span>
+                            </div>
+                            <div class="alert-meta-item">
+                                <span>📅</span>
+                                <span>${alert.visit}</span>
+                            </div>
+                            <div class="alert-meta-item">
+                                <span>🕐</span>
+                                <span>${alert.time}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert-actions">
+                        <button class="alert-btn primary" onclick="acknowledgeAlert(${alert.id})">Acknowledge</button>
+                        <button class="alert-btn secondary" onclick="viewDetails(${alert.id})">Details</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterAlerts(type) {
+            currentFilter = type;
+            document.querySelectorAll('.filter-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            renderAlerts(type);
+        }
+
+        function acknowledgeAlert(id) {
+            const alert = alertsData.find(a => a.id === id);
+            if (alert) {
+                alert.status = 'read';
+                alert.element = document.querySelector(`[data-id="${id}"]`);
+                // In production, this would update the backend
+                showNotification(`Alert acknowledged: ${alert.title.substring(0, 40)}...`);
+                renderAlerts(currentFilter);
+            }
+        }
+
+        function viewDetails(id) {
+            const alert = alertsData.find(a => a.id === id);
+            if (alert) {
+                showNotification(`Opening detailed view for: ${alert.title}`);
+                // In production, this would open a detailed modal
+            }
+        }
+
+        function openModal() {
+            document.getElementById('modalOverlay').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+            document.getElementById('alertForm').reset();
+        }
+
+        document.getElementById('alertForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const newAlert = {
+                id: alertsData.length + 1,
+                type: document.getElementById('alertType').value,
+                title: document.getElementById('alertTitle').value,
+                description: document.getElementById('alertDetails').value,
+                patient: document.getElementById('patientId').value,
+                time: 'Just now',
+                visit: 'N/A',
+                status: 'unread'
+            };
+
+            alertsData.unshift(newAlert);
+            renderAlerts(currentFilter);
+            closeModal();
+            showNotification('Alert created successfully!');
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('modalOverlay').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        function showNotification(message) {
+            // Simple notification - in production use a toast library
+            alert(message);
+        }
+
+        // Initialize
+        renderAlerts();
+
+        // Simulate real-time updates
+        setInterval(() => {
+            // Add pulse effect to critical alerts
+            document.querySelectorAll('.alert-card.critical').forEach((card, index) => {
+                if (index === 0) card.classList.add('pulse');
+            });
+        }, 5000);
+    </script>
+</body>
+</html>
